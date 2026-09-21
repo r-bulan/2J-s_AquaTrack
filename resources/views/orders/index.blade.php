@@ -85,7 +85,11 @@
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 sm:px-6 font-bold text-slate-800">
                                     #{{ $order->id }}
-                                    <div class="text-[10px] font-medium text-slate-400 mt-0.5">{{ $order->type }}</div>
+                                    @if ($order->type === 'Recurring' || $order->recurring_order_id)
+                                        <div class="text-[10px] font-extrabold text-blue-600">Recurring</div>
+                                    @else
+                                        <div class="text-[10px] font-medium text-slate-400 mt-0.5">{{ $order->type }}</div>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <div class="font-bold text-slate-900">{{ $order->customer_name }}</div>
@@ -94,8 +98,19 @@
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-800">{{ $order->jug_count }} Jugs</div>
-                                    <div class="text-[11px] text-blue-600 font-semibold">{{ $order->gallon_type }} Gallon (@ ₱{{ number_format($order->unit_price, 2) }})</div>
+                                    <div class="font-bold text-slate-800">{{ $order->breakdown }}</div>
+                                    @if ($order->round_count > 0 && $order->flat_count > 0)
+                                        <div class="text-[10px] text-slate-500 font-medium">
+                                            {{ $order->round_count }} Round (@ ₱{{ number_format($order->round_unit_price, 2) }}) + {{ $order->flat_count }} Flat (@ ₱{{ number_format($order->flat_unit_price, 2) }})
+                                        </div>
+                                    @else
+                                        <div class="text-[11px] text-blue-600 font-semibold">@ ₱{{ number_format($order->unit_price, 2) }}/jug</div>
+                                    @endif
+                                    @if ($order->recurring_order_id)
+                                        <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                            Schedule #{{ $order->recurring_order_id }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-bold text-slate-900">
                                     ₱{{ number_format($order->total_amount, 2) }}
@@ -152,7 +167,7 @@
                                                 <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
                                                     <p><strong>Customer:</strong> {{ $order->customer_name }}</p>
                                                     <p class="mt-0.5 text-slate-500"><strong>Address:</strong> {{ $order->delivery_address }}</p>
-                                                    <p class="mt-0.5 text-blue-600 font-semibold"><strong>Load:</strong> {{ $order->jug_count }}x {{ $order->gallon_type }} Gallons</p>
+                                                    <p class="mt-0.5 text-blue-600 font-semibold"><strong>Load:</strong> {{ $order->breakdown }}</p>
                                                 </div>
 
                                                 <div>
@@ -210,14 +225,22 @@
             x-data="{
                 customerId: '',
                 customersData: {{ Js::from($customers->keyBy('id')) }},
-                gallonType: 'Round',
-                quantity: 1,
+                roundCount: 1,
+                flatCount: 0,
                 prices: {{ Js::from($prices) }},
-                get unitPrice() {
-                    return this.prices[this.gallonType] || 35.00;
+                get roundPrice() {
+                    return this.prices['Round'] || 35.00;
+                },
+                get flatPrice() {
+                    return this.prices['Flat'] || 40.00;
+                },
+                get totalJugs() {
+                    return (parseInt(this.roundCount) || 0) + (parseInt(this.flatCount) || 0);
                 },
                 get total() {
-                    return (this.quantity * this.unitPrice).toFixed(2);
+                    const r = (parseInt(this.roundCount) || 0) * this.roundPrice;
+                    const f = (parseInt(this.flatCount) || 0) * this.flatPrice;
+                    return (r + f).toFixed(2);
                 },
                 updateAddress() {
                     if (this.customerId && this.customersData[this.customerId]) {
@@ -261,43 +284,59 @@
                 </div>
             </div>
 
-            <!-- Gallon Type & Quantity Section with Dynamic Live Pricing -->
+            <!-- Mixed Gallon Quantities Section with Dynamic Live Pricing -->
             <div class="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1.5">Gallon Type *</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold cursor-pointer transition"
-                                :class="gallonType === 'Round' ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'">
-                                <input type="radio" name="gallon_type" value="Round" x-model="gallonType" class="sr-only">
-                                <span>Round Gallon</span>
-                            </label>
-                            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold cursor-pointer transition"
-                                :class="gallonType === 'Flat' ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'">
-                                <input type="radio" name="gallon_type" value="Flat" x-model="gallonType" class="sr-only">
-                                <span>Flat Gallon</span>
-                            </label>
+                <label class="block text-xs font-bold text-blue-900 uppercase tracking-wider">Container Quantities *</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Round Gallon Quantity -->
+                    <div class="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-bold text-slate-800">Round Gallon</span>
+                                <span class="text-[11px] text-blue-600 block" x-text="'₱' + roundPrice.toFixed(2) + '/jug'"></span>
+                            </div>
+                            <span class="text-[10px] uppercase font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">20L Round</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-500 font-medium">Quantity:</span>
+                            <input
+                                type="number"
+                                name="round_count"
+                                x-model.number="roundCount"
+                                min="0"
+                                max="500"
+                                class="w-20 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-900 text-center"
+                            >
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1.5">Gallon Quantity *</label>
-                        <input
-                            type="number"
-                            name="jug_count"
-                            x-model.number="quantity"
-                            min="1"
-                            max="500"
-                            required
-                            class="w-full px-3.5 py-2.5 rounded-xl border border-blue-200 bg-white text-xs font-bold text-slate-900"
-                        >
+                    <!-- Flat Gallon Quantity -->
+                    <div class="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-bold text-slate-800">Flat Gallon (Slim)</span>
+                                <span class="text-[11px] text-blue-600 block" x-text="'₱' + flatPrice.toFixed(2) + '/jug'"></span>
+                            </div>
+                            <span class="text-[10px] uppercase font-bold text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded">20L Flat</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-500 font-medium">Quantity:</span>
+                            <input
+                                type="number"
+                                name="flat_count"
+                                x-model.number="flatCount"
+                                min="0"
+                                max="500"
+                                class="w-20 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-900 text-center"
+                            >
+                        </div>
                     </div>
                 </div>
 
                 <!-- Price Breakdown Banner -->
-                <div class="flex items-center justify-between pt-2 border-t border-blue-100/80 text-xs">
-                    <span class="text-blue-700">
-                        Unit Price: <strong x-text="'₱' + unitPrice.toFixed(2)"></strong>
+                <div class="flex items-center justify-between pt-2 border-t border-blue-100 text-xs">
+                    <span class="text-blue-800 font-semibold">
+                        Total Jugs: <strong x-text="totalJugs"></strong> (<span x-text="roundCount || 0"></span> Round + <span x-text="flatCount || 0"></span> Flat)
                     </span>
                     <span class="text-slate-800 font-bold">
                         Calculated Total: <span class="text-base text-blue-700 font-extrabold" x-text="'₱' + total"></span>
@@ -340,7 +379,7 @@
 
             <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button type="button" x-on:click="$dispatch('close-modal', 'new-order-modal')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-500/20">Create Order</button>
+                <button type="submit" :disabled="totalJugs < 1" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md shadow-blue-500/20">Create Order</button>
             </div>
         </form>
     </x-modal>

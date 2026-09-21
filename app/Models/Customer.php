@@ -58,6 +58,11 @@ class Customer extends Model
         return $this->hasMany(Order::class)->orderBy('order_date', 'desc');
     }
 
+    public function recurringOrders()
+    {
+        return $this->hasMany(RecurringOrder::class)->orderBy('created_at', 'desc');
+    }
+
     public function feedback()
     {
         return $this->hasMany(Feedback::class);

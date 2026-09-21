@@ -76,7 +76,7 @@
                                     <h3 class="text-base font-bold text-slate-900">{{ $del->customer_name }}</h3>
                                     <x-status-badge :status="$del->status" />
                                     <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                                        {{ $del->jug_count }}x {{ $del->gallon_type }} Gallons
+                                        {{ $del->breakdown }}
                                     </span>
                                 </div>
 
@@ -220,7 +220,7 @@
 
                             <div class="bg-blue-50/75 p-3 rounded-xl border border-blue-100 text-xs">
                                 <p class="font-bold text-blue-900">Refill Delivery Details:</p>
-                                <p class="text-blue-800">{{ $del->customer_name }} • {{ $del->jug_count }}x {{ $del->gallon_type }} Gallons</p>
+                                <p class="text-blue-800">{{ $del->customer_name }} • {{ $del->breakdown }}</p>
                                 <p class="text-blue-700 font-extrabold mt-0.5">Total to Collect: ₱{{ number_format($del->order?->total_amount ?? 0, 2) }} ({{ $del->order?->payment_method }})</p>
                             </div>
 
@@ -332,7 +332,7 @@
                                     <div class="text-[11px] text-slate-500 truncate max-w-xs">{{ $del->address }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-semibold text-slate-800">
-                                    {{ $del->jug_count }}x {{ $del->gallon_type }}
+                                    {{ $del->breakdown }}
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="font-medium text-slate-800">{{ $del->rider_name ?? 'Unassigned' }}</span>

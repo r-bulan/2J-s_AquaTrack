@@ -43,6 +43,8 @@ class DeliveryService
                     'route_order' => $routeOrder,
                     'status' => 'Assigned',
                     'jug_count' => $order->jug_count,
+                    'round_count' => $order->round_count,
+                    'flat_count' => $order->flat_count,
                     'gallon_type' => $order->gallon_type,
                     'notes' => $order->notes,
                 ]

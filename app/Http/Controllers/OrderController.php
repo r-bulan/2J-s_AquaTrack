@@ -24,7 +24,7 @@ class OrderController extends Controller
         $status = $request->query('status', 'All');
         $search = $request->query('search');
 
-        $query = Order::with(['customer', 'rider', 'delivery'])->orderBy('order_date', 'desc')->orderBy('id', 'desc');
+        $query = Order::with(['customer', 'rider', 'delivery', 'recurringOrder'])->orderBy('order_date', 'desc')->orderBy('id', 'desc');
 
         if ($status && $status !== 'All') {
             $query->where('status', $status);

@@ -20,6 +20,13 @@ class PricingService
         return round($price * max(1, $quantity), 2);
     }
 
+    public function calculateMixedTotal(int $roundCount, int $flatCount): float
+    {
+        $roundPrice = $this->getPrice('Round');
+        $flatPrice = $this->getPrice('Flat');
+        return round((max(0, $roundCount) * $roundPrice) + (max(0, $flatCount) * $flatPrice), 2);
+    }
+
     public function getPrices(): array
     {
         return [

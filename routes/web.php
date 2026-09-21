@@ -102,6 +102,10 @@ Route::middleware(['auth', 'role:admin,rider'])->group(function () {
 Route::middleware(['auth', 'role:customer'])->prefix('portal')->group(function () {
     Route::get('/', [PortalController::class, 'index'])->name('portal.index');
     Route::post('/orders', [PortalController::class, 'placeOrder'])->middleware('verified')->name('portal.orders.store');
+    Route::post('/recurring', [PortalController::class, 'storeRecurringOrder'])->middleware('verified')->name('portal.recurring.store');
+    Route::post('/recurring/{recurringOrder}/pause', [PortalController::class, 'pauseRecurringOrder'])->name('portal.recurring.pause');
+    Route::post('/recurring/{recurringOrder}/resume', [PortalController::class, 'resumeRecurringOrder'])->name('portal.recurring.resume');
+    Route::post('/recurring/{recurringOrder}/cancel', [PortalController::class, 'cancelRecurringOrder'])->name('portal.recurring.cancel');
     Route::post('/feedback', [PortalController::class, 'submitFeedback'])->name('portal.feedback.store');
 });
 
