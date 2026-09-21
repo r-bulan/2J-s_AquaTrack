@@ -1,3 +1,4 @@
+{{-- NOTE: The active application layout used by all views via <x-layouts.app> is resources/views/components/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-slate-50">
 <head>
@@ -292,49 +293,5 @@
             </main>
         </div>
     </div>
-
-    <!-- Global Edit Display Name Modal (Available for all authenticated roles) -->
-    <x-modal name="edit-profile-name-modal" title="Edit Your Display Name" maxWidth="max-w-md">
-        <form method="POST" action="{{ route('profile.update-name') }}" class="space-y-4">
-            @csrf
-            @method('PUT')
-
-            <div>
-                <label for="profile_display_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Full / Display Name <span class="text-rose-500">*</span>
-                </label>
-                <input
-                    type="text"
-                    id="profile_display_name"
-                    name="name"
-                    value="{{ old('name', auth()->user()->name) }}"
-                    required
-                    minlength="2"
-                    maxlength="100"
-                    placeholder="Enter your name"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                >
-                <p class="mt-1.5 text-xs text-slate-500">
-                    This changes your name across your account profile. Your login email and role will remain unchanged.
-                </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    x-on:click="$dispatch('close-modal', 'edit-profile-name-modal')"
-                    class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition"
-                >
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </x-modal>
 </body>
 </html>

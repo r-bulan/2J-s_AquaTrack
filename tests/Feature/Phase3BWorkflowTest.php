@@ -65,7 +65,7 @@ class Phase3BWorkflowTest extends TestCase
         $customerUser = User::where('role', 'customer')->first();
         $customer = $customerUser->customer;
 
-        // Create an existing order with a historical snapshot
+        // Create an existing order and delivery with a historical snapshot
         $historicalName = 'Historical Snapshot Name';
         $order = Order::create([
             'order_number' => 'ORD-SNAP-TEST-' . rand(1000, 9999),
@@ -84,6 +84,17 @@ class Phase3BWorkflowTest extends TestCase
             'order_date' => now()->toDateString(),
         ]);
 
+        $delivery = Delivery::create([
+            'order_id' => $order->id,
+            'customer_name' => $historicalName,
+            'address' => 'Historical Address 123',
+            'status' => 'Assigned',
+            'jug_count' => 2,
+            'round_count' => 2,
+            'flat_count' => 0,
+            'gallon_type' => 'Round',
+        ]);
+
         $originalUserName = $customerUser->name;
         $newName = 'New Name Snapshot Test';
 
@@ -91,11 +102,14 @@ class Phase3BWorkflowTest extends TestCase
             'name' => $newName,
         ]);
 
-        // Verify historical order still preserves the snapshot name
+        // Verify historical order and delivery still preserve the snapshot name
         $order->refresh();
+        $delivery->refresh();
         $this->assertEquals($historicalName, $order->customer_name);
+        $this->assertEquals($historicalName, $delivery->customer_name);
 
         // Cleanup
+        $delivery->delete();
         $order->delete();
         $customerUser->update(['name' => $originalUserName]);
         $customer->update(['name' => $originalUserName]);
@@ -217,6 +231,39 @@ class Phase3BWorkflowTest extends TestCase
             'name' => 'Guest Attacker',
         ]);
         $response->assertRedirect(route('login'));
+    }
+
+    /**
+     * B1.7: Layout Verification - Pages using <x-layouts.app> render edit-profile-name-modal
+     * and trigger buttons with correct route, method, CSRF, and current user's name.
+     */
+    public function test_active_layout_renders_edit_profile_name_modal_and_trigger_buttons(): void
+    {
+        // 1. Customer Portal renders modal and welcome banner edit button
+        $customerUser = User::where('role', 'customer')->first();
+        $portalResponse = $this->actingAs($customerUser)->get(route('portal.index'));
+        $portalResponse->assertStatus(200);
+        $portalResponse->assertSee("open-modal', 'edit-profile-name-modal'", false);
+        $portalResponse->assertSee('edit-profile-name-modal');
+        $portalResponse->assertSee(route('profile.update-name'));
+        $portalResponse->assertSee('name="_method" value="PUT"', false);
+        $portalResponse->assertSee('value="' . e($customerUser->name) . '"', false);
+
+        // 2. Admin Dashboard renders modal and sidebar edit button
+        $adminUser = User::where('role', 'admin')->first();
+        $adminResponse = $this->actingAs($adminUser)->get(route('dashboard'));
+        $adminResponse->assertStatus(200);
+        $adminResponse->assertSee("open-modal', 'edit-profile-name-modal'", false);
+        $adminResponse->assertSee('edit-profile-name-modal');
+        $adminResponse->assertSee('value="' . e($adminUser->name) . '"', false);
+
+        // 3. Rider Deliveries renders modal and sidebar edit button
+        $riderUser = User::where('role', 'rider')->first();
+        $riderResponse = $this->actingAs($riderUser)->get(route('deliveries.index'));
+        $riderResponse->assertStatus(200);
+        $riderResponse->assertSee("open-modal', 'edit-profile-name-modal'", false);
+        $riderResponse->assertSee('edit-profile-name-modal');
+        $riderResponse->assertSee('value="' . e($riderUser->name) . '"', false);
     }
 
     /**
