@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AdjustCustomerJugsRequest;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Models\Customer;
 use App\Services\ActivityLogService;
+use App\Services\CustomerSyncService;
 use App\Services\ReorderForecastService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +15,8 @@ class CustomerController extends Controller
 {
     public function __construct(
         protected ActivityLogService $activityLogService,
-        protected ReorderForecastService $reorderForecastService
+        protected ReorderForecastService $reorderForecastService,
+        protected CustomerSyncService $customerSyncService
     ) {}
 
     public function index(Request $request)
@@ -99,5 +102,19 @@ class CustomerController extends Controller
         });
 
         return redirect()->route('customers.index')->with('success', "Customer {$customer->name} successfully registered!");
+    }
+
+    /**
+     * Manually adjust customer's jug balance (Admin / Owner only).
+     */
+    public function adjustJugs(AdjustCustomerJugsRequest $request, Customer $customer)
+    {
+        $validated = $request->validated();
+        $newBalance = (int) $validated['new_balance'];
+        $reason = $validated['reason'];
+
+        $this->customerSyncService->manuallyAdjustJugBalance($customer, $newBalance, $reason);
+
+        return back()->with('success', "Jug balance for {$customer->name} has been manually updated to {$newBalance}.");
     }
 }

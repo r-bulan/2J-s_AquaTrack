@@ -79,14 +79,26 @@
 
             <!-- Mobile User Footer -->
             <div class="p-4 border-t border-slate-100 bg-slate-50/50">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
-                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm shrink-0">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-semibold text-slate-800 truncate">{{ auth()->user()->name }}</p>
+                            <p class="text-xs text-slate-500 capitalize">{{ auth()->user()->role }}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-slate-800 truncate">{{ auth()->user()->name }}</p>
-                        <p class="text-xs text-slate-500 capitalize">{{ auth()->user()->role }}</p>
-                    </div>
+                    <button
+                        type="button"
+                        x-on:click="$dispatch('open-modal', 'edit-profile-name-modal'); mobileMenuOpen = false"
+                        class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit Your Display Name"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                    </button>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -126,16 +138,26 @@
             <div class="p-4 border-t border-slate-100 bg-slate-50/50">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">
                             {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                         </div>
                         <div class="min-w-0">
-                            <p class="text-xs font-bold text-slate-800 truncate">{{ auth()->user()->name }}</p>
+                            <p class="text-xs font-bold text-slate-800 truncate" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</p>
                             <span class="inline-block px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700">
                                 {{ auth()->user()->role }}
                             </span>
                         </div>
                     </div>
+                    <button
+                        type="button"
+                        x-on:click="$dispatch('open-modal', 'edit-profile-name-modal')"
+                        class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit Your Display Name"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                    </button>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -270,5 +292,49 @@
             </main>
         </div>
     </div>
+
+    <!-- Global Edit Display Name Modal (Available for all authenticated roles) -->
+    <x-modal name="edit-profile-name-modal" title="Edit Your Display Name" maxWidth="max-w-md">
+        <form method="POST" action="{{ route('profile.update-name') }}" class="space-y-4">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label for="profile_display_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Full / Display Name <span class="text-rose-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="profile_display_name"
+                    name="name"
+                    value="{{ old('name', auth()->user()->name) }}"
+                    required
+                    minlength="2"
+                    maxlength="100"
+                    placeholder="Enter your name"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                >
+                <p class="mt-1.5 text-xs text-slate-500">
+                    This changes your name across your account profile. Your login email and role will remain unchanged.
+                </p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button
+                    type="button"
+                    x-on:click="$dispatch('close-modal', 'edit-profile-name-modal')"
+                    class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition"
+                >
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </x-modal>
 </body>
 </html>

@@ -11,6 +11,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RiderController;
 use App\Http\Controllers\SettingController;
@@ -44,6 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/email/verify', [AuthController::class, 'showVerifyNotice'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('signed')->name('verification.verify');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:6,1')->name('verification.send');
+
+    // Self-profile management (All roles)
+    Route::put('/profile/name', [ProfileController::class, 'updateName'])->name('profile.update-name');
 });
 
 // Admin / Owner Routes
@@ -58,6 +62,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::post('/customers/{customer}/adjust-jugs', [CustomerController::class, 'adjustJugs'])->name('customers.adjust-jugs');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');

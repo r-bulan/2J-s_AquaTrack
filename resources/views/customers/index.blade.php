@@ -106,19 +106,32 @@
                     </div>
 
                     <!-- Footer Action -->
-                    <button
-                        type="button"
-                        x-on:click="
-                            selectedCustomer = {{ Js::from($cust) }};
-                            $dispatch('open-modal', 'customer-detail-{{ $cust->id }}');
-                        "
-                        class="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-xs font-semibold text-slate-600 transition flex items-center justify-center gap-1.5"
-                    >
-                        <span>View Customer Profile</span>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            x-on:click="
+                                selectedCustomer = {{ Js::from($cust) }};
+                                $dispatch('open-modal', 'customer-detail-{{ $cust->id }}');
+                            "
+                            class="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-xs font-semibold text-slate-600 transition flex items-center justify-center gap-1.5"
+                        >
+                            <span>Profile</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            x-on:click="$dispatch('open-modal', 'adjust-jugs-modal-{{ $cust->id }}')"
+                            class="py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition flex items-center justify-center gap-1"
+                            title="Adjust Jug Balance"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                            </svg>
+                            <span>Adjust Jugs</span>
+                        </button>
+                    </div>
 
                     <!-- Customer Detail Modal -->
                     <x-modal name="customer-detail-{{ $cust->id }}" title="{{ $cust->name }}" maxWidth="max-w-2xl">
@@ -146,13 +159,25 @@
                             <!-- 3 Core Ledgers (Jug Ledger, Credit, Loyalty) -->
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <!-- Gallon / Jug Ledger -->
-                                <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
-                                    <span class="text-[10px] font-bold text-blue-800 uppercase tracking-wider block mb-1">Gallon / Jug Ledger</span>
-                                    <div class="text-xl font-extrabold text-blue-900">{{ $jugsHeld }} <span class="text-xs font-normal">held</span></div>
-                                    <div class="mt-2 text-[11px] text-blue-700">
-                                        Deposit: <strong>₱{{ number_format($cust->jugLedger?->deposit_amount ?? 0, 2) }}</strong>
-                                        ({{ $cust->jugLedger?->deposit_status ?? 'Unpaid' }})
+                                <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-col justify-between">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-blue-800 uppercase tracking-wider block mb-1">Gallon / Jug Ledger</span>
+                                        <div class="text-xl font-extrabold text-blue-900">{{ $jugsHeld }} <span class="text-xs font-normal">held</span></div>
+                                        <div class="mt-2 text-[11px] text-blue-700">
+                                            Deposit: <strong>₱{{ number_format($cust->jugLedger?->deposit_amount ?? 0, 2) }}</strong>
+                                            ({{ $cust->jugLedger?->deposit_status ?? 'Unpaid' }})
+                                        </div>
                                     </div>
+                                    <button
+                                        type="button"
+                                        x-on:click="$dispatch('close-modal', 'customer-detail-{{ $cust->id }}'); $dispatch('open-modal', 'adjust-jugs-modal-{{ $cust->id }}')"
+                                        class="mt-3 w-full py-1.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition shadow-xs flex items-center justify-center gap-1"
+                                    >
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <span>Adjust Balance</span>
+                                    </button>
                                 </div>
 
                                 <!-- Credit Ledger -->
@@ -180,7 +205,7 @@
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-xs text-amber-900">
-                                            Average cycle: <strong>{{ $cust->avg_reorder_days }} days</strong>
+                                             Average cycle: <strong>{{ $cust->avg_reorder_days }} days</strong>
                                             @if ($cust->last_order_date)
                                                 (Last ordered {{ now()->diffInDays($cust->last_order_date) }} days ago on {{ $cust->last_order_date->format('M d, Y') }})
                                             @endif
@@ -201,6 +226,163 @@
                             <div class="pt-3 border-t border-slate-100 flex justify-end">
                                 <button type="button" @click="$dispatch('close-modal', 'customer-detail-{{ $cust->id }}')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">Close</button>
                             </div>
+                        </div>
+                    </x-modal>
+
+                    <!-- Adjust Jugs Modal -->
+                    <x-modal name="adjust-jugs-modal-{{ $cust->id }}" title="Adjust Jug Balance — {{ $cust->name }}" maxWidth="max-w-lg">
+                        <div x-data="{
+                            currentBalance: {{ $jugsHeld }},
+                            newBalance: {{ $jugsHeld }},
+                            reason: '',
+                            get diff() {
+                                return (parseInt(this.newBalance) || 0) - this.currentBalance;
+                            },
+                            get diffText() {
+                                if (this.diff > 0) return '+' + this.diff + ' jugs (Increase)';
+                                if (this.diff < 0) return this.diff + ' jugs (Decrease)';
+                                return '0 jugs (No change)';
+                            },
+                            setPresetReason(preset) {
+                                this.reason = preset;
+                            }
+                        }">
+                            <form method="POST" action="{{ route('customers.adjust-jugs', $cust) }}" class="space-y-4">
+                                @csrf
+
+                                <!-- Current Balance & Net Difference Preview -->
+                                <div class="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <div>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Balance</span>
+                                        <span class="text-2xl font-black text-slate-800">{{ $jugsHeld }}</span>
+                                        <span class="text-xs text-slate-500 block">jugs currently held</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Net Adjustment</span>
+                                        <span
+                                            class="text-lg font-extrabold block mt-1"
+                                            :class="{
+                                                'text-blue-600': diff > 0,
+                                                'text-amber-600': diff < 0,
+                                                'text-slate-500': diff === 0
+                                            }"
+                                            x-text="diffText"
+                                        ></span>
+                                    </div>
+                                </div>
+
+                                <!-- Target Jug Balance -->
+                                <div>
+                                    <label for="new_balance_{{ $cust->id }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                        Corrected / Target Jug Balance <span class="text-rose-500">*</span>
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            id="new_balance_{{ $cust->id }}"
+                                            name="new_balance"
+                                            x-model.number="newBalance"
+                                            min="0"
+                                            max="10000"
+                                            required
+                                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                        >
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            <button
+                                                type="button"
+                                                x-on:click="if (newBalance > 0) newBalance--"
+                                                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base transition flex items-center justify-center"
+                                                title="Decrease by 1"
+                                            >-</button>
+                                            <button
+                                                type="button"
+                                                x-on:click="newBalance++"
+                                                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base transition flex items-center justify-center"
+                                                title="Increase by 1"
+                                            >+</button>
+                                        </div>
+                                    </div>
+                                    <p class="mt-1 text-[11px] text-slate-500">
+                                        Enter the true count of water containers this customer currently holds.
+                                    </p>
+                                </div>
+
+                                <!-- Preset Reason Shortcuts -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                        Quick Preset Reasons
+                                    </label>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @php
+                                            $presets = [
+                                                'Customer returned bottles directly at station',
+                                                'Physical inventory count audit correction',
+                                                'Customer brought extra personal bottles',
+                                                'Damaged or discarded unreturned bottles',
+                                                'Manual balance ledger correction',
+                                            ];
+                                        @endphp
+                                        @foreach ($presets as $preset)
+                                            <button
+                                                type="button"
+                                                x-on:click="setPresetReason('{{ $preset }}')"
+                                                class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition"
+                                            >
+                                                {{ $preset }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <!-- Reason Textarea -->
+                                <div>
+                                    <label for="reason_{{ $cust->id }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                        Adjustment Reason (Mandatory Audit Log) <span class="text-rose-500">*</span>
+                                    </label>
+                                    <textarea
+                                        id="reason_{{ $cust->id }}"
+                                        name="reason"
+                                        x-model="reason"
+                                        rows="2"
+                                        required
+                                        minlength="3"
+                                        maxlength="500"
+                                        placeholder="Explain why this manual balance correction is being made..."
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                    ></textarea>
+                                    <p class="mt-1 text-[11px] text-slate-400">
+                                        This reason is permanently recorded in system activity logs.
+                                    </p>
+                                </div>
+
+                                <!-- Notice -->
+                                <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-900 flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>
+                                        Manual correction directly updates the ledger row with concurrency locking. It does NOT generate orders, deliveries, or alter loyalty refill counters.
+                                    </span>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        x-on:click="$dispatch('close-modal', 'adjust-jugs-modal-{{ $cust->id }}')"
+                                        class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        :disabled="!reason.trim() || newBalance < 0"
+                                        class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition"
+                                    >
+                                        Save Jug Adjustment
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </x-modal>
                 </div>
