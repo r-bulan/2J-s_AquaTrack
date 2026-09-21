@@ -92,6 +92,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 
+    Route::post('/deliveries/{delivery}/retry', [DeliveryController::class, 'retry'])->name('deliveries.retry');
+    Route::post('/deliveries/{delivery}/cancel', [DeliveryController::class, 'cancel'])->name('deliveries.cancel');
+
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });
 

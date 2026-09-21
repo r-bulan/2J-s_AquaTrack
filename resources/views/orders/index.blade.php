@@ -18,7 +18,7 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <!-- Status Tabs (Horizontally scrollable on mobile) -->
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                @foreach (['All', 'Pending', 'Confirmed', 'Out for Delivery', 'Delivered', 'Cancelled'] as $st)
+                @foreach (['All', 'Pending', 'Confirmed', 'Out for Delivery', 'Delivery Failed', 'Delivered', 'Cancelled'] as $st)
                     <a
                         href="{{ route('orders.index', ['status' => $st, 'search' => $search]) }}"
                         class="px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition {{ $status === $st ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"

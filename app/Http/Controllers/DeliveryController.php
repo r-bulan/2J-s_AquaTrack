@@ -8,6 +8,7 @@ use App\Models\Rider;
 use App\Services\DeliveryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class DeliveryController extends Controller
 {
@@ -21,10 +22,10 @@ class DeliveryController extends Controller
         $isRider = $user->isRider();
         $currentRider = $user->rider;
 
-        $tab = $request->query('tab', 'queue'); // queue, all, delivered
+        $tab = $request->query('tab', 'queue'); // queue, failed, delivered, all
         $riderFilter = $request->query('rider_id');
 
-        $query = Delivery::with(['order', 'rider']);
+        $query = Delivery::with(['order', 'rider', 'attempts.rider', 'failedByUser', 'resolvedByUser']);
 
         // Strict role authorization: Rider can only view their own deliveries
         if ($isRider) {
@@ -41,6 +42,10 @@ class DeliveryController extends Controller
             $query->whereIn('status', ['Assigned', 'En Route'])
                 ->orderBy('route_order', 'asc')
                 ->orderBy('id', 'asc');
+        } elseif ($tab === 'failed') {
+            $query->where('status', 'Failed')
+                ->orderBy('failed_at', 'desc')
+                ->orderBy('id', 'desc');
         } elseif ($tab === 'delivered') {
             $query->where('status', 'Delivered')
                 ->orderBy('delivery_date', 'desc')
@@ -50,11 +55,19 @@ class DeliveryController extends Controller
         }
 
         $deliveries = $query->paginate(15)->withQueryString();
-        $riders = $user->isAdmin() ? Rider::where('status', 'Active')->get() : collect();
+        $riders = $user->isAdmin() ? Rider::where('status', 'Active')->orderBy('name')->get() : collect();
 
-        $queueCount = (clone $query)->whereIn('status', ['Assigned', 'En Route'])->count();
+        $baseCountQuery = Delivery::query();
+        if ($isRider) {
+            $baseCountQuery->where('rider_id', $currentRider?->id);
+        } elseif ($riderFilter) {
+            $baseCountQuery->where('rider_id', $riderFilter);
+        }
 
-        return view('deliveries.index', compact('deliveries', 'tab', 'isRider', 'currentRider', 'riders', 'queueCount'));
+        $queueCount = (clone $baseCountQuery)->whereIn('status', ['Assigned', 'En Route'])->count();
+        $failedCount = (clone $baseCountQuery)->where('status', 'Failed')->count();
+
+        return view('deliveries.index', compact('deliveries', 'tab', 'isRider', 'currentRider', 'riders', 'queueCount', 'failedCount'));
     }
 
     public function start(Delivery $delivery)
@@ -90,13 +103,67 @@ class DeliveryController extends Controller
 
     public function fail(Request $request, Delivery $delivery)
     {
-        $this->authorize('update', $delivery);
+        $this->authorize('reportFailure', $delivery);
 
-        $request->validate(['reason' => 'nullable|string|max:500']);
+        $validated = $request->validate([
+            'reason' => ['required', 'string', Rule::in(Delivery::FAILURE_REASONS)],
+            'notes' => ['nullable', 'string', 'max:1000', 'required_if:reason,Other'],
+        ], [
+            'reason.required' => 'Please select a reason for the failed delivery.',
+            'reason.in' => 'The selected failure reason is invalid.',
+            'notes.required_if' => 'Please provide detailed notes when selecting "Other" as the failure reason.',
+        ]);
 
         try {
-            $this->deliveryService->failDelivery($delivery, $request->input('reason'));
-            return back()->with('warning', "Delivery #{$delivery->id} marked as Failed.");
+            $this->deliveryService->failDelivery($delivery, $validated['reason'], $validated['notes'] ?? null, Auth::user());
+            return back()->with('warning', "Delivery #{$delivery->id} marked as Failed. Reason: {$validated['reason']}");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function retry(Request $request, Delivery $delivery)
+    {
+        $this->authorize('retry', $delivery);
+
+        $validated = $request->validate([
+            'rider_id' => 'required|exists:riders,id',
+            'delivery_date' => 'required|date',
+            'preferred_time' => 'nullable|string|max:100',
+            'route_order' => 'nullable|integer|min:1|max:999',
+        ]);
+
+        $rider = Rider::findOrFail($validated['rider_id']);
+
+        try {
+            $this->deliveryService->retryDelivery(
+                $delivery,
+                $rider,
+                $validated['delivery_date'],
+                $validated['preferred_time'] ?? null,
+                isset($validated['route_order']) ? (int) $validated['route_order'] : 99,
+                Auth::user()
+            );
+
+            return back()->with('success', "Delivery #{$delivery->id} retried and assigned to Rider {$rider->name}!");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function cancel(Request $request, Delivery $delivery)
+    {
+        $this->authorize('cancelFailed', $delivery);
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ], [
+            'reason.required' => 'Please provide a reason for cancelling this order.',
+        ]);
+
+        try {
+            $this->deliveryService->cancelFailedDelivery($delivery, $validated['reason'], Auth::user());
+            return back()->with('success', "Order #{$delivery->order_id} (Delivery #{$delivery->id}) has been cancelled.");
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

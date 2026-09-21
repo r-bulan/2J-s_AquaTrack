@@ -9,6 +9,21 @@ class Delivery extends Model
 {
     use HasFactory;
 
+    public const FAILURE_REASONS = [
+        'Customer unavailable',
+        'Wrong/incomplete address',
+        'Customer refused delivery',
+        'No safe access',
+        'Vehicle/transport problem',
+        'Water/product issue',
+        'Other',
+    ];
+
+    public const RESOLUTION_PENDING_REVIEW = 'pending_review';
+    public const RESOLUTION_RESCHEDULED = 'rescheduled';
+    public const RESOLUTION_CANCELLED = 'cancelled';
+    public const RESOLUTION_RESOLVED = 'resolved';
+
     protected $fillable = [
         'order_id',
         'customer_name',
@@ -19,6 +34,14 @@ class Delivery extends Model
         'rider_name',
         'route_order',
         'status',
+        'failure_reason',
+        'failure_notes',
+        'failed_at',
+        'failed_by_user_id',
+        'retry_count',
+        'failure_resolution',
+        'resolved_at',
+        'resolved_by_user_id',
         'delivery_date',
         'proof_photo',
         'signature',
@@ -34,7 +57,10 @@ class Delivery extends Model
     {
         return [
             'delivery_date' => 'date',
+            'failed_at' => 'datetime',
+            'resolved_at' => 'datetime',
             'route_order' => 'integer',
+            'retry_count' => 'integer',
             'jug_count' => 'integer',
             'round_count' => 'integer',
             'flat_count' => 'integer',
@@ -64,5 +90,25 @@ class Delivery extends Model
     public function rider()
     {
         return $this->belongsTo(Rider::class);
+    }
+
+    public function attempts()
+    {
+        return $this->hasMany(DeliveryAttempt::class)->orderBy('attempt_number', 'asc');
+    }
+
+    public function latestAttempt()
+    {
+        return $this->hasOne(DeliveryAttempt::class)->latestOfMany('attempt_number');
+    }
+
+    public function failedByUser()
+    {
+        return $this->belongsTo(User::class, 'failed_by_user_id');
+    }
+
+    public function resolvedByUser()
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
     }
 }

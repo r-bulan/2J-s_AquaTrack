@@ -49,6 +49,7 @@ class OrderController extends Controller
             'Confirmed' => Order::where('status', 'Confirmed')->count(),
             'Out for Delivery' => Order::where('status', 'Out for Delivery')->count(),
             'Delivered' => Order::where('status', 'Delivered')->count(),
+            'Delivery Failed' => Order::where('status', 'Delivery Failed')->count(),
             'Cancelled' => Order::where('status', 'Cancelled')->count(),
         ];
 
