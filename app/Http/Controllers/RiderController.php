@@ -32,6 +32,8 @@ class RiderController extends Controller
         $validated = $request->validated();
 
         $rider = DB::transaction(function () use ($validated) {
+            // Admin/Owner-created Rider accounts are deliberately pre-verified
+            // because they are provisioned directly by station management.
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],

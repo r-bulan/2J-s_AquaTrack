@@ -78,7 +78,8 @@ class DeliveryController extends Controller
                 $delivery,
                 $request->file('proof_photo'),
                 $request->input('signature'),
-                $request->input('notes')
+                $request->input('notes'),
+                $request->filled('returned_jugs') ? (int) $request->input('returned_jugs') : null
             );
 
             return back()->with('success', "Delivery #{$delivery->id} marked Delivered! Revenue and records synchronized.");

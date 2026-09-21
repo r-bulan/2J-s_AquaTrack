@@ -16,6 +16,7 @@ class ProofOfDeliveryRequest extends FormRequest
         return [
             'proof_photo' => 'nullable|file|image|mimes:jpeg,png,jpg,webp|max:10240', // 10MB max
             'signature' => 'nullable|string', // Base64 data URL
+            'returned_jugs' => 'nullable|integer|min:0|max:1000',
             'notes' => 'nullable|string|max:1000',
         ];
     }

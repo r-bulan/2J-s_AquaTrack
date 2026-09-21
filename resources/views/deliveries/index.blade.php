@@ -269,9 +269,15 @@
                                 <p class="text-[11px] text-slate-400 mt-1">Customer may sign with finger on mobile or mouse on desktop.</p>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Delivery Notes</label>
-                                <input type="text" name="notes" placeholder="Received by customer, payment collected..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Empty Jugs Returned</label>
+                                    <input type="number" name="returned_jugs" min="0" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Delivery Notes</label>
+                                    <input type="text" name="notes" placeholder="Received by customer..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                                </div>
                             </div>
 
                             <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">

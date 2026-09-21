@@ -5,10 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -95,7 +100,7 @@ class AuthController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'role' => 'customer',
-                'email_verified_at' => now(),
+                'email_verified_at' => null, // Explicitly unverified: customer must verify via email link
             ]);
 
             // Automatically create Customer record and ledgers
@@ -134,16 +139,69 @@ class AuthController extends Controller
             return $user;
         });
 
+        // Trigger email verification notification
+        event(new Registered($user));
+
         Auth::login($user);
 
         $this->activityLogService->log(
             action: 'Customer Registered',
             entityType: 'User',
             entityId: $user->id,
-            description: sprintf('New customer %s registered online', $user->name)
+            description: sprintf('New customer %s registered online (verification link dispatched)', $user->name)
         );
 
-        return redirect()->route('portal.index')->with('success', 'Welcome to Two J\'s AquaTrack!');
+        return redirect()->route('portal.index')->with('success', 'Welcome to Two J\'s AquaTrack! A verification link has been sent to your email.');
+    }
+
+    public function showVerifyNotice()
+    {
+        if (Auth::user()?->hasVerifiedEmail()) {
+            return redirect()->route('portal.index');
+        }
+
+        return view('auth.verify-email');
+    }
+
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = $request->user();
+
+        if (!$user || !hash_equals((string) $id, (string) $user->getKey())) {
+            abort(403, 'Unauthorized user verification attempt.');
+        }
+
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            abort(403, 'Invalid or expired verification signature.');
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('portal.index')->with('status', 'Your email is already verified.');
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+
+            $this->activityLogService->log(
+                action: 'Email Verified',
+                entityType: 'User',
+                entityId: $user->id,
+                description: sprintf('User %s (%s) successfully verified their email address', $user->name, $user->email)
+            );
+        }
+
+        return redirect()->route('portal.index')->with('success', 'Your email has been successfully verified! You now have full access to place refill orders.');
+    }
+
+    public function resendVerificationEmail(Request $request)
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('portal.index');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', 'verification-link-sent');
     }
 
     public function logout(Request $request)
@@ -174,13 +232,16 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        // Do not reveal whether an email exists
+        // Dispatch token and notification via Laravel's password broker
+        PasswordBroker::sendResetLink($request->only('email'));
+
+        // Always return generic response to prevent user enumeration
         return back()->with('status', 'If an account exists with that email address, a password reset link has been dispatched.');
     }
 
     public function showResetPassword(Request $request, ?string $token = null)
     {
-        return view('auth.reset-password', ['token' => $token, 'email' => $request->email]);
+        return view('auth.reset-password', ['token' => $token, 'email' => $request->query('email')]);
     }
 
     public function resetPassword(Request $request)
@@ -191,13 +252,32 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::where('email', $request->email)->first();
-        if ($user) {
-            $user->update([
-                'password' => Hash::make($request->password),
-            ]);
+        $status = PasswordBroker::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === PasswordBroker::PASSWORD_RESET) {
+            $user = User::where('email', $request->email)->first();
+            if ($user) {
+                $this->activityLogService->log(
+                    action: 'Password Reset',
+                    entityType: 'User',
+                    entityId: $user->id,
+                    description: sprintf('Password was reset successfully for %s (%s)', $user->name, $user->email)
+                );
+            }
+
+            return redirect()->route('login')->with('status', __($status));
         }
 
-        return redirect()->route('login')->with('status', 'Your password has been successfully reset! Please login.');
+        return back()->withErrors(['email' => __($status)])->onlyInput('email');
     }
 }

@@ -28,6 +28,7 @@ class Order extends Model
         'route_order',
         'recurring',
         'notes',
+        'synced_at',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class Order extends Model
             'total_amount' => 'decimal:2',
             'route_order' => 'integer',
             'recurring' => 'boolean',
+            'synced_at' => 'datetime',
         ];
     }
 

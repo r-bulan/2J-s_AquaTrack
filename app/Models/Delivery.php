@@ -24,6 +24,7 @@ class Delivery extends Model
         'signature',
         'notes',
         'jug_count',
+        'returned_jugs',
         'gallon_type',
     ];
 
@@ -33,6 +34,7 @@ class Delivery extends Model
             'delivery_date' => 'date',
             'route_order' => 'integer',
             'jug_count' => 'integer',
+            'returned_jugs' => 'integer',
         ];
     }
 

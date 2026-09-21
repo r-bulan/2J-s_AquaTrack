@@ -14,8 +14,9 @@ class StoreSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'round_gallon_price' => 'required|numeric|min:0.01|max:10000',
-            'flat_gallon_price' => 'required|numeric|min:0.01|max:10000',
+            'round_gallon_price' => 'nullable|numeric|min:0.01|max:10000',
+            'flat_gallon_price' => 'nullable|numeric|min:0.01|max:10000',
+            'loyalty_refills_needed' => 'nullable|integer|min:1|max:100',
         ];
     }
 }

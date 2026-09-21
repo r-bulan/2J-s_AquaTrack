@@ -90,13 +90,14 @@ class DeliveryService
         Delivery $delivery,
         ?UploadedFile $proofPhoto = null,
         ?string $signatureBase64 = null,
-        ?string $notes = null
+        ?string $notes = null,
+        ?int $returnedJugs = null
     ): Delivery {
-        if (!in_array($delivery->status, ['Assigned', 'En Route'])) {
-            throw new \DomainException("Cannot complete delivery in '{$delivery->status}' status.");
+        if ($delivery->status !== 'En Route') {
+            throw new \DomainException("Cannot complete delivery in '{$delivery->status}' status. Delivery must be En Route first.");
         }
 
-        return DB::transaction(function () use ($delivery, $proofPhoto, $signatureBase64, $notes) {
+        return DB::transaction(function () use ($delivery, $proofPhoto, $signatureBase64, $notes, $returnedJugs) {
             $photoPath = $delivery->proof_photo;
             if ($proofPhoto) {
                 $filename = 'pod_' . $delivery->id . '_' . Str::random(10) . '.' . $proofPhoto->getClientOriginalExtension();
@@ -116,11 +117,14 @@ class DeliveryService
                 }
             }
 
+            $returnedCount = max(0, (int) ($returnedJugs ?? $delivery->returned_jugs ?? 0));
+
             $delivery->update([
                 'status' => 'Delivered',
                 'delivery_date' => now()->toDateString(),
                 'proof_photo' => $photoPath,
                 'signature' => $signaturePath,
+                'returned_jugs' => $returnedCount,
                 'notes' => $notes ?: $delivery->notes,
             ]);
 
@@ -141,7 +145,7 @@ class DeliveryService
                 action: 'Delivery Completed',
                 entityType: 'Delivery',
                 entityId: $delivery->id,
-                description: sprintf('Delivery #%d (Order #%d) marked Delivered by Rider %s', $delivery->id, $order->id, $delivery->rider_name)
+                description: sprintf('Delivery #%d (Order #%d) marked Delivered by Rider %s (Returned Jugs: %d)', $delivery->id, $order->id, $delivery->rider_name, $returnedCount)
             );
 
             return $delivery;

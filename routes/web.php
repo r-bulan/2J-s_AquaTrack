@@ -39,6 +39,13 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// Email Verification Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [AuthController::class, 'showVerifyNotice'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('signed')->name('verification.verify');
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:6,1')->name('verification.send');
+});
+
 // Admin / Owner Routes
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -94,7 +101,7 @@ Route::middleware(['auth', 'role:admin,rider'])->group(function () {
 // Customer Portal Routes
 Route::middleware(['auth', 'role:customer'])->prefix('portal')->group(function () {
     Route::get('/', [PortalController::class, 'index'])->name('portal.index');
-    Route::post('/orders', [PortalController::class, 'placeOrder'])->name('portal.orders.store');
+    Route::post('/orders', [PortalController::class, 'placeOrder'])->middleware('verified')->name('portal.orders.store');
     Route::post('/feedback', [PortalController::class, 'submitFeedback'])->name('portal.feedback.store');
 });
 

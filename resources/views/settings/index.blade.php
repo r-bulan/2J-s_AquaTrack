@@ -76,5 +76,52 @@
                 </div>
             </form>
         </x-card>
+
+        <!-- Loyalty Rewards Configuration Card -->
+        <x-card title="Customer Loyalty Rewards" subtitle="Configure customer refill stamp milestones and reward thresholds">
+            <form method="POST" action="{{ route('settings.update') }}" class="space-y-6">
+                @csrf
+
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                    </svg>
+                    <div class="text-xs text-emerald-900 leading-relaxed">
+                        <strong class="font-bold">Customer Progress Preservation:</strong>
+                        Updating this threshold changes the requirement for future free refill rewards without resetting or clearing customers' existing refill count. Default is 10 refills per 1 free refill.
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 max-w-sm">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <label for="loyalty_threshold" class="text-xs font-bold text-slate-800 uppercase tracking-wider">Refills Required for 1 Free Refill</label>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mb-3">Number of qualifying completed refills before earning 1 free gallon</p>
+                    <div class="relative">
+                        <input
+                            id="loyalty_threshold"
+                            type="number"
+                            step="1"
+                            min="1"
+                            max="100"
+                            name="loyalty_refills_needed"
+                            value="{{ old('loyalty_refills_needed', $loyaltyRefillsNeeded ?? 10) }}"
+                            required
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-900 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                        >
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-end">
+                    <button
+                        type="submit"
+                        class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/25 transition cursor-pointer"
+                    >
+                        Save Loyalty Settings
+                    </button>
+                </div>
+            </form>
+        </x-card>
     </div>
 </x-layouts.app>
